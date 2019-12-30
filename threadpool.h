@@ -2,6 +2,7 @@
 #define THREADPOOL_H
 
 #include <stddef.h>
+#include <semaphore.h>
 
 typedef struct runnable {
   void (*function)(void *, size_t);
@@ -9,8 +10,20 @@ typedef struct runnable {
   size_t argsz;
 } runnable_t;
 
-typedef struct thread_pool {
+typedef struct node {
+    int data;
+    struct node *next;
+} node_t;
 
+typedef struct queue {
+
+} queue_t;
+
+typedef struct thread_pool {
+    size_t pool_size;
+    sem_t mutex;
+    sem_t waiting_threads;
+    queue_t * queue;
 } thread_pool_t;
 
 int thread_pool_init(thread_pool_t *pool, size_t pool_size);
