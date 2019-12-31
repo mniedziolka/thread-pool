@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <semaphore.h>
+#include <stdbool.h>
 
 typedef struct runnable {
   void (*function)(void *, size_t);
@@ -11,12 +12,14 @@ typedef struct runnable {
 } runnable_t;
 
 typedef struct node {
-    int data;
-    struct node *next;
+    runnable_t runnable;
+    struct node* next;
 } node_t;
 
 typedef struct queue {
-
+    node_t* first;
+    node_t* last;
+    size_t size;
 } queue_t;
 
 typedef struct thread_pool {
@@ -24,6 +27,8 @@ typedef struct thread_pool {
     sem_t mutex;
     sem_t waiting_threads;
     queue_t * queue;
+    pthread_t** threads;
+    bool finished;
 } thread_pool_t;
 
 int thread_pool_init(thread_pool_t *pool, size_t pool_size);
