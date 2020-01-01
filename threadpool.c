@@ -22,9 +22,9 @@ static void push(queue_t* queue, runnable_t runnable) {
     } else {
         queue->last->next = new;
         queue->last = new;
-        ++queue->size;
     }
 
+    ++queue->size;
 }
 
 static runnable_t pop(queue_t* queue) {
@@ -49,31 +49,32 @@ static runnable_t pop(queue_t* queue) {
 
 static void* thread_function(void* arg) {
     thread_pool_t* pool = arg;
-    int err = 0;
+    int* err = malloc(sizeof(int));
     while (true) {
-        err = sem_wait(&pool->waiting_threads);
-        if (err != 0) {
+        *err = sem_wait(&pool->waiting_threads);
+        if (*err != 0) {
             fprintf(stderr, "Broken semaphore\n");
-            exit(err);
+            return err;
         }
 
-        if (pool->finished) return 0;
+        *err = 0;
+        if (pool->finished) return err;
 
-        err = sem_wait(&pool->mutex);
+        *err = sem_wait(&pool->mutex);
         // CRITICAL SECTION BEGIN
 
-        if (err != 0) {
+        if (*err != 0) {
             fprintf(stderr, "Broken semaphore\n");
-            exit(err);
+            return err;
         }
 
         runnable_t task = pop(pool->queue);
 
         // CRITICAL SECTION END
-        err = sem_post(&pool->mutex);
-        if (err != 0) {
+        *err = sem_post(&pool->mutex);
+        if (*err != 0) {
             fprintf(stderr, "Broken semaphore\n");
-            exit(err);
+            return err;
         }
 
         (*task.function)(task.arg, task.argsz);
@@ -94,25 +95,30 @@ int thread_pool_init(thread_pool_t* pool, size_t num_threads) {
         return SEGFAULT;
     }
 
+    // INIT ATTRIBUTE
+    err = pthread_attr_init(&pool->attr);
+    if (err != 0) {
+        fprintf(stderr, "attr_init failed");
+        return err;
+    }
+
+    err = pthread_attr_setdetachstate(&pool->attr,PTHREAD_CREATE_JOINABLE);
+    if (err != 0) {
+        fprintf(stderr, "attr_setdetachstate failed");
+        return err;
+    }
+
     // INIT THREADS
     pool->pool_size = num_threads;
 
-    pool->threads = malloc(num_threads * sizeof(pthread_t*));
+    pool->threads = malloc(num_threads * sizeof(pthread_t));
     if (pool->threads == NULL) {
         fprintf(stderr, "Threads cannot be initialized\n");
         return SEGFAULT;
     }
 
     for (unsigned i = 0; i < num_threads; ++i) {
-        pool->threads[i] = malloc(sizeof(pthread_t));
-        if (pool->threads[i] == NULL) {
-            fprintf(stderr, "Threads cannot be initialized\n");
-            return SEGFAULT;
-        }
-    }
-
-    for (unsigned i = 0; i < num_threads; ++i) {
-        err = pthread_create(pool->threads[i], NULL, thread_function, pool);
+        err = pthread_create(&pool->threads[i], &pool->attr, thread_function, pool);
         if (err != 0) {
             fprintf(stderr, "Threads cannot be created\n");
             return err;
@@ -120,7 +126,6 @@ int thread_pool_init(thread_pool_t* pool, size_t num_threads) {
     }
 
     // INIT QUEUE
-
     pool->queue = malloc(sizeof(queue_t));
     if (pool->queue == NULL) {
         fprintf(stderr, "Queue cannot be created\n");
@@ -133,7 +138,6 @@ int thread_pool_init(thread_pool_t* pool, size_t num_threads) {
 
 
     // INIT FINISHED
-
     pool->finished = false;
 
     return 0;
@@ -141,12 +145,36 @@ int thread_pool_init(thread_pool_t* pool, size_t num_threads) {
 
 void thread_pool_destroy(struct thread_pool* pool) {
     pool->finished = true;
+
     for (unsigned i = 0; i < pool->pool_size; ++i) {
-        pthread_join((pthread_t)pool->threads[i], NULL);
+        sem_post(&pool->waiting_threads);
     }
 
-    sem_destroy(&pool->mutex);
-    sem_destroy(&pool->waiting_threads);
+    void* retval;
+    for (unsigned i = 0; i < pool->pool_size; ++i) {
+        pthread_join(pool->threads[i], &retval);
+        if (*((int*)retval) != 0) {
+            fprintf(stderr, "Thread exited with %d\n", *((int*)retval));
+            exit(SEGFAULT);
+        }
+    }
+
+    int err = pthread_attr_destroy(&pool->attr);
+    if (err != 0) {
+        fprintf(stderr, "pthread_attr_destroy failed\n");
+        exit(SEGFAULT);
+    }
+
+    err = sem_destroy(&pool->mutex);
+    if (err != 0) {
+        fprintf(stderr, "sem_destroy failed\n");
+        exit(SEGFAULT);
+    }
+    err = sem_destroy(&pool->waiting_threads);
+    if (err != 0) {
+        fprintf(stderr, "sem_destroy failed\n");
+        exit(SEGFAULT);
+    }
 }
 
 int defer(struct thread_pool* pool, runnable_t runnable) {

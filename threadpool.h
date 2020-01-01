@@ -26,9 +26,10 @@ typedef struct thread_pool {
     size_t pool_size;
     sem_t mutex;
     sem_t waiting_threads;
-    queue_t * queue;
-    pthread_t** threads;
+    queue_t* queue;
+    pthread_t* threads;
     bool finished;
+    pthread_attr_t attr;
 } thread_pool_t;
 
 int thread_pool_init(thread_pool_t *pool, size_t pool_size);
