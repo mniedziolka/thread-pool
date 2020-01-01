@@ -6,6 +6,8 @@
 
 #define SEGFAULT 11
 
+// QUEUE FUNCTIONS BEGIN
+
 static void push(queue_t* queue, runnable_t runnable) {
     node_t* new = malloc(sizeof(node_t));
     if (new == NULL) {
@@ -46,6 +48,17 @@ static runnable_t pop(queue_t* queue) {
 
     return result;
 }
+
+static void free_queue(queue_t* queue) {
+    node_t* node = queue->first;
+    while (node != NULL) {
+        node_t* tmp = node;
+        node = node->next;
+        free(tmp);
+    }
+}
+
+// QUEUE FUNCTIONS END
 
 static void* thread_function(void* arg) {
     thread_pool_t* pool = arg;
@@ -153,10 +166,13 @@ void thread_pool_destroy(struct thread_pool* pool) {
     void* retval;
     for (unsigned i = 0; i < pool->pool_size; ++i) {
         pthread_join(pool->threads[i], &retval);
-        if (*((int*)retval) != 0) {
-            fprintf(stderr, "Thread exited with %d\n", *((int*)retval));
+        int* ret = retval;
+        if (*ret != 0) {
+            fprintf(stderr, "Thread exited with %d\n", *ret);
+            free(ret);
             exit(SEGFAULT);
         }
+        free(ret);
     }
 
     int err = pthread_attr_destroy(&pool->attr);
@@ -175,6 +191,11 @@ void thread_pool_destroy(struct thread_pool* pool) {
         fprintf(stderr, "sem_destroy failed\n");
         exit(SEGFAULT);
     }
+
+    free_queue(pool->queue);
+    free(pool->queue);
+
+    free(pool->threads);
 }
 
 int defer(struct thread_pool* pool, runnable_t runnable) {
