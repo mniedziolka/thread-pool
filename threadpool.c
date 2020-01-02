@@ -199,6 +199,11 @@ void thread_pool_destroy(struct thread_pool* pool) {
 }
 
 int defer(struct thread_pool* pool, runnable_t runnable) {
+    // Check is not destroyed.
+    if (pool->finished) {
+        return SEGFAULT;
+    }
+
     int err = sem_wait(&pool->mutex);
     // CRITICAL SECTION BEGIN
 
