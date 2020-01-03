@@ -76,7 +76,15 @@ static void* thread_function(void* arg) {
         }
         // BEGIN CRITICAL SECTION
 
-        if (pool->queue->size == 0) {*err = 0; return err;}
+        if (pool->queue->size == 0) {
+            *err = sem_post(&pool->mutex);
+            if (*err != 0) {
+                fprintf(stderr, "ERROR: sem_post failed\n");
+                return err;
+            }
+            *err = 0;
+            return err;
+        }
         runnable_t task = pop(pool->queue);
 
         // END CRITICAL SECTION
