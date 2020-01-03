@@ -91,10 +91,18 @@ static void* thread_function(void* arg) {
 }
 
 int thread_pool_init(thread_pool_t* pool, size_t num_threads) {
+//    sigset_t block_mask;
+//    sigemptyset(&block_mask);
+//    sigaddset(&block_mask, SIGINT);
+//
+//    pool->action.sa_handler = thread_pool_destroy;
+//    pool->action.sa_mask = block_mask;
+//    pool->action.sa_flags = 0;
+
     // INIT QUEUE
     pool->queue = malloc(sizeof(queue_t));
     if (pool->queue == NULL) {
-        fprintf(stderr, "ERROR queue_create failed\n");
+        fprintf(stderr, "ERROR: queue_create failed\n");
         return -1;
     }
     pool->queue->size = 0;

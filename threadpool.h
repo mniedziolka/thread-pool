@@ -1,9 +1,10 @@
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
 
-#include <stddef.h>
 #include <semaphore.h>
+#include <signal.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef struct runnable {
   void (*function)(void *, size_t);
@@ -30,6 +31,7 @@ typedef struct thread_pool {
     pthread_t* threads;
     bool finished;
     pthread_attr_t attr;
+    //struct sigaction action;
 } thread_pool_t;
 
 int thread_pool_init(thread_pool_t *pool, size_t pool_size);
