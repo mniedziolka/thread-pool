@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <assert.h>
 #include "future.h"
 #include "minunit.h"
 
@@ -15,6 +15,26 @@ static void *squared(void *arg, size_t argsz __attribute__((unused)),
   int *ret = malloc(sizeof(int));
   *ret = n * n;
   return ret;
+}
+
+static char *test_map_simple() {
+    assert(!thread_pool_init(&pool, 1));
+
+    int n = 2;
+    //printf("&n: %p\n", &n);
+    future_t future1, future2, future3;
+    assert(!async(&pool, &future,
+                  (callable_t) {.function = squared, .arg = &n, .argsz = sizeof(int)}));
+    assert(!map(&pool, &future1, &future, squared));
+    assert(!map(&pool, &future2, &future1, squared));
+    assert(!map(&pool, &future3, &future2, squared));
+    int *m = await(&future3);
+
+    mu_assert("expected 256 * 256", *m == 256 * 256);
+    free(m);
+
+    thread_pool_destroy(&pool);
+    return 0;
 }
 
 static char *test_await_simple() {
@@ -34,6 +54,7 @@ static char *test_await_simple() {
 
 static char *all_tests() {
   mu_run_test(test_await_simple);
+    mu_run_test(test_map_simple);
   return 0;
 }
 

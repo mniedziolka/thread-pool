@@ -21,7 +21,7 @@ static void fun_with_wait(void* arg, size_t size __attribute__((unused))) {
     sem_wait(&from->finished);
     future_t* to = pair->second;
     to->result = to->callable.function(from->result, from->result_size, &to->result_size);
-
+    sem_post(&to->finished);
     free(pair);
 }
 
@@ -47,7 +47,7 @@ int async(thread_pool_t *pool, future_t *future, callable_t callable) {
 int map(thread_pool_t* pool, future_t* future, future_t* from,
         void *(*function)(void *, size_t, size_t*)) {
 
-    pair_future_t* pair = malloc(sizeof(pair_future_t*));
+    pair_future_t* pair = malloc(sizeof(pair_future_t));
     if (pair == NULL) {
         fprintf(stderr, "ERROR: callable_init failed\n");
         return -1;
