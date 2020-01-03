@@ -21,7 +21,7 @@ static void fun(void* arg, size_t size __attribute__((unused))) {
     free(context);
 }
 
-int main() {
+int32_t main() {
     uint32_t k, n;
     scanf("%u%u", &k, &n);
     guard = malloc(k * sizeof(sem_t));

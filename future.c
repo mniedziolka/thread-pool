@@ -19,6 +19,7 @@ static void fun_with_wait(void* arg, size_t size __attribute__((unused))) {
     pair_future_t* pair = arg;
     future_t* from = pair->first;
     sem_wait(&from->finished);
+    sem_post(&from->finished);
     future_t* to = pair->second;
     to->result = to->callable.function(from->result, from->result_size, &to->result_size);
     sem_post(&to->finished);
@@ -73,7 +74,7 @@ int map(thread_pool_t* pool, future_t* future, future_t* from,
 
     defer(pool, r);
 
-  return 0;
+    return 0;
 }
 
 void* await(future_t* future) {
