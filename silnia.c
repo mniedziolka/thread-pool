@@ -8,7 +8,8 @@
 
 future_t** future;
 
-static void* fun(void* arg, size_t argsz, size_t* resultsz) {
+static void* fun(void* arg, size_t argsz __attribute__((unused)),
+                 size_t* resultsz __attribute__((unused))) {
     uint64_t* k = arg;
     *k *= (*k + 3);
     return k;

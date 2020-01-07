@@ -1,5 +1,6 @@
 #include "threadpool.h"
 
+#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -59,7 +60,53 @@ static void free_queue(queue_t* queue) {
 
 // QUEUE FUNCTIONS END
 
+struct {
+    struct sigaction action;
+    struct sigaction old_action;
+    thread_pool_t** known_pools;
+    size_t pools_size;
+    unsigned last;
+    sigset_t block_mask;
+} handler;
+
+static void sigint_destroy() {
+    fprintf(stderr, "ERROR: SIGINT caught\n");
+    for (unsigned i = 0; i < handler.last; ++i) {
+        if (handler.known_pools[i] != NULL) {
+            handler.known_pools[i]->finished = true;
+        }
+    }
+    for (unsigned i = 0; i < handler.last; ++i) {
+        if (handler.known_pools[i] != NULL) {
+            thread_pool_destroy(handler.known_pools[i]);
+        }
+    }
+}
+
+__attribute__((constructor))
+static void init_handler() {
+    sigemptyset(&handler.block_mask);
+    sigaddset(&handler.block_mask, SIGINT);
+    handler.action.sa_sigaction = sigint_destroy;
+    handler.action.sa_flags = SA_SIGINFO;
+    handler.action.sa_mask = handler.block_mask;
+    int err = sigaction(SIGINT, &handler.action, &handler.old_action);
+    if (err != 0) {
+        fprintf(stderr, "ERROR: signal init failed\n");
+        exit(err);
+    }
+    handler.pools_size = 4;
+    handler.last = 0;
+    handler.known_pools = malloc(4 * sizeof(thread_pool_t*));
+}
+
+__attribute__((destructor))
+static void destroy_handler() {
+    free(handler.known_pools);
+}
+
 static void* thread_function(void* arg) {
+    pthread_sigmask(SIG_BLOCK, &handler.block_mask, NULL);
     thread_pool_t* pool = arg;
     int* err = malloc(sizeof(int));
     while (true) {
@@ -99,14 +146,6 @@ static void* thread_function(void* arg) {
 }
 
 int thread_pool_init(thread_pool_t* pool, size_t num_threads) {
-//    sigset_t block_mask;
-//    sigemptyset(&block_mask);
-//    sigaddset(&block_mask, SIGINT);
-//
-//    pool->action.sa_handler = thread_pool_destroy;
-//    pool->action.sa_mask = block_mask;
-//    pool->action.sa_flags = 0;
-
     // INIT QUEUE
     pool->queue = malloc(sizeof(queue_t));
     if (pool->queue == NULL) {
@@ -160,13 +199,30 @@ int thread_pool_init(thread_pool_t* pool, size_t num_threads) {
         }
     }
 
+    if (handler.last == handler.pools_size) {
+        thread_pool_t** new_pools = realloc(handler.known_pools,
+                2 * handler.pools_size * sizeof(thread_pool_t*));
+        if (new_pools == NULL) {
+            return -1;
+        }
+        handler.pools_size *= 2;
+        handler.known_pools = new_pools;
+    }
+    handler.known_pools[handler.last++] = pool;
+
     // INIT FINISHED
     pool->finished = false;
 
     return 0;
 }
 
-void thread_pool_destroy(struct thread_pool* pool) {
+void thread_pool_destroy(thread_pool_t* pool) {
+    for (unsigned i = 0; i < handler.last; ++i) {
+        if (pool == handler.known_pools[i]) {
+            handler.known_pools[i] = NULL;
+            break;
+        }
+    }
     int err = sem_wait(&pool->mutex);
     if (err != 0) {
         fprintf(stderr, "ERROR: sem_wait failed\n");
@@ -186,13 +242,12 @@ void thread_pool_destroy(struct thread_pool* pool) {
         exit(err);
     }
 
-
     void* retval;
     for (unsigned i = 0; i < pool->pool_size; ++i) {
         pthread_join(pool->threads[i], &retval);
         int* ret = retval;
         if (*ret != 0) {
-            fprintf(stderr, "ERROR: Thread exited with %d\n", *ret);
+            fprintf(stderr, "ERROR: Thread exited with %d\nYou probably sent signal during destroy", *ret);
             free(ret);
             exit(-1);
         }
@@ -218,8 +273,9 @@ void thread_pool_destroy(struct thread_pool* pool) {
 
     free_queue(pool->queue);
     free(pool->queue);
-
     free(pool->threads);
+
+
 }
 
 int defer(struct thread_pool* pool, runnable_t runnable) {
