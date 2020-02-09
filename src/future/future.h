@@ -1,7 +1,7 @@
 #ifndef FUTURE_H
 #define FUTURE_H
 
-#include "threadpool.h"
+#include "../threadpool/threadpool.h"
 
 typedef struct callable {
   void *(*function)(void *, size_t, size_t *);

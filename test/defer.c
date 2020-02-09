@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "minunit.h"
-#include "threadpool.h"
+#include "src/threadpool/threadpool.h"
 
 int tests_run = 0;
 
