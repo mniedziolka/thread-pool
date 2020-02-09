@@ -1,7 +1,7 @@
 #!/bin/bash
 
-function testujmacierz () {
-  for i in "${CMAKE_SOURCE_DIR}/test/dane/$1"*.txt; do
+function testMatrix () {
+  for i in "${CMAKE_SOURCE_DIR}/test/data/$1"*.txt; do
 	  echo $i
 	  dn=`dirname $i`
 	  bn=`basename $i .txt`
@@ -19,18 +19,18 @@ function testujmacierz () {
 }
 
 if [ $# -le 0 ]; then
-        echo "Powinien być jeden argument"
+        echo "There should be only one argument"
         exit 1
 fi
 
 if [ $1 -ge 1 ]; then
-        if testujmacierz stud; then
+        if testMatrix stud; then
                 exit 1
         fi
 fi
 
 if [ $1 -ge 2 ]; then
-        if testujmacierz thorough; then
+        if testMatrix thorough; then
                 exit 1
         fi
 fi

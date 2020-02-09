@@ -1,0 +1,45 @@
+#!/bin/bash
+
+FACTORIALRES=ressilnia.txt
+
+function testPower () {
+  for i in `cat "${CMAKE_SOURCE_DIR}/test/data/$1"`; do
+	echo $i
+	echo $i | "${CMAKE_BINARY_DIR}/silnia" >> $FACTORIALRES
+  done
+  if diff $FACTORIALRES "${CMAKE_SOURCE_DIR}/test/data/res$1"; then
+	  return 1
+  else
+	  return 0
+  fi
+}
+
+
+if [ $# -le 0 ]; then
+	echo "There should be only one argument"
+	exit 1
+fi
+
+if [ -f $FACTORIALRES ]; then
+	rm $FACTORIALRES
+fi
+
+if [ $1 -ge 1 ]; then
+	if testPower stud; then
+		exit 1
+	fi
+fi
+
+if [ -f $FACTORIALRES ]; then
+	rm $FACTORIALRES
+fi
+
+if [ $1 -ge 2 ]; then
+       if testPower thorough; then
+	       exit 1
+       fi
+fi
+
+if [ -f $FACTORIALRES ]; then
+	rm $FACTORIALRES
+fi
