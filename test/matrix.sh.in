@@ -6,7 +6,7 @@ function testMatrix () {
 	  dn=`dirname $i`
 	  bn=`basename $i .txt`
 	  echo $dn $bn
-    cat $i | "${CMAKE_BINARY_DIR}/macierz" > res$bn.txt
+    cat $i | "${CMAKE_BINARY_DIR}/matrix" > res$bn.txt
     if diff res$bn.txt "$dn/res$bn.txt"; then
        rm res$bn.txt
        continue;
