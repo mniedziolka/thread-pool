@@ -1,3 +1,11 @@
+/** @file
+ * Interfejs klasy przechowującej miasto
+ *
+ * @author Michał Niedziółka <michal.niedziolka@students.mimuw.edu.pl>
+ * @copyright Michał Niedziółka
+ * @date 11.02.2020
+ */
+
 #ifndef FUTURE_H
 #define FUTURE_H
 

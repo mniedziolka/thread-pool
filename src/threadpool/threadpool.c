@@ -1,13 +1,23 @@
+/** @file
+ * Threadpool implementation.
+ *
+ * @author Michał Niedziółka <michal.niedziolka@students.mimuw.edu.pl>
+ * @copyright Michał Niedziółka
+ * @date 29.04.2019
+ */
+
 #include "threadpool.h"
 
-#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
 
-
-// QUEUE FUNCTIONS BEGIN
-
+/** @brief Add a new element to the queue.
+ * Allocate a new node and copy the runnable to it.
+ * Push it at the end of the queue.
+ * @param[in,out] queue – pointer to the queue;
+ * @param[in] runnable  – nowe dane do dołączenia do listy;
+ */
 static void push(queue_t* queue, runnable_t runnable) {
     node_t* new = malloc(sizeof(node_t));
     if (new == NULL) {
@@ -29,6 +39,12 @@ static void push(queue_t* queue, runnable_t runnable) {
     ++queue->size;
 }
 
+/** @brief Read and pop the first element in queue.
+ * Return the first element in the queue.
+ * Pop the node from the queue and assign new first node.
+ * @param[in,out] queue – pointer to the queue;
+ * @return runnable with the first element in the queue.
+ */
 static runnable_t pop(queue_t* queue) {
     if (queue->size == 0) {
         fprintf(stderr, "ERROR: pop from empty queue\n");
@@ -49,6 +65,10 @@ static runnable_t pop(queue_t* queue) {
     return result;
 }
 
+/** @brief Deallocate the queue.
+ * Iterate through every node in queue and free them.
+ * @param[in,out] queue – pointer to the queue;
+ */
 static void free_queue(queue_t* queue) {
     node_t* node = queue->first;
     while (node != NULL) {
@@ -58,17 +78,22 @@ static void free_queue(queue_t* queue) {
     }
 }
 
-// QUEUE FUNCTIONS END
-
+/**
+ * Signal handler
+ */
 struct {
-    struct sigaction action;
-    struct sigaction old_action;
-    thread_pool_t** known_pools;
-    size_t pools_size;
-    unsigned last;
-    sigset_t block_mask;
+    struct sigaction action; ///<                 new action for sigaction;
+    struct sigaction old_action; ///<             old action for sigaction;
+    thread_pool_t** known_pools; ///< array of pointers to all known pools;
+    size_t pools_size; ///<                  size of the known_pools array;
+    unsigned last; ///<                        number of initialized pools;
+    sigset_t block_mask; ///<                    mask with blocked signals;
 } handler;
 
+/** @brief Destroy all pools after receiving SIGINT.
+ * After SIGINT is catched wait for all pools to finish their tasks
+ * and destroy them.
+ */
 static void sigint_destroy() {
     fprintf(stderr, "ERROR: SIGINT caught\n");
     for (unsigned i = 0; i < handler.last; ++i) {
@@ -83,6 +108,10 @@ static void sigint_destroy() {
     }
 }
 
+/** @brief Constructor of the exception handler.
+ * Initialize block_mask with SIGINT.
+ * Set handling function and flags.
+ */
 __attribute__((constructor))
 static void init_handler() {
     sigemptyset(&handler.block_mask);
@@ -100,11 +129,19 @@ static void init_handler() {
     handler.known_pools = malloc(4 * sizeof(thread_pool_t*));
 }
 
+/** @brief Destructor of the handler.
+ * Deallocate exception handler.
+ */
 __attribute__((destructor))
 static void destroy_handler() {
     free(handler.known_pools);
 }
 
+/** @brief Function run by every thread.
+ * If there is a task to run pop it from the queue and run.
+ * If not, sleep on the semaphore.
+ * Repeat until the thread-pool is destroyed.
+ */
 static void* thread_function(void* arg) {
     pthread_sigmask(SIG_BLOCK, &handler.block_mask, NULL);
     thread_pool_t* pool = arg;

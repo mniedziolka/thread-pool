@@ -1,24 +1,5 @@
 # Asynchroniczne C
 
-## Wprowadzenie
-Pula watkow to mechanizm pozwalajacy na uzyskanie wspolbieznego wykonywanie wielu zadan w ramach jednego programu.
-W sklad puli wchodzi pewna liczba watkow roboczych (ang. worker threads), czekajacych na pojawienie sie pracy do wykonania.
-
-Uzycie puli watkow pozwala uniknac ciaglego powolywania i czekania na zakonczenie sie watku przy wykonywaniu
-krotkotrwalych zadan wspolbieznych. Pozwala tez na wykonywanie bardzo duzej liczby zadan niezaleznie od siebie w sytuacji,
-gdy liczba dostepnych potokow przetwarzania jest ograniczona.
-
-## Polecenie
-* Zaimplementuj pule watkow zgodnie z ponizszym opisem szczegolowym (3 pkt).
-
-* Zaimplementuj obliczenia future zgodnie z ponizszym opisem szczegolowym (3 pkt).
-
-* Napisz program przykladowy macierz, obliczajacy za pomoca puli watkow sumy wierszy z zadanej tablicy (1 pkt).
-
-* Napisz program przykladowy silnia, obliczajacy za pomoca mechanizmu future silnie zadanej liczby (1 pkt).
-
-* Zadbaj, aby kod byl napisany w sposob klarowny i rzetelny zgodnie z ponizszymi wytycznymi. (2 pkt).
-
 ## Szczegolowy opis puli watkow
 Pule watkow nalezy zaimplementowac jako realizacje interfejsu przedstawionego w pliku "threadpool.h". Zamieszczone tam sa m.in. nastepujace deklaracje:
 
@@ -156,25 +137,7 @@ powinno spowodowac pojawienie sie na wyjsciu
 ```
 120
 ```
-
-## Wymagania techniczne
-Do synchronizacji mozna korzystac tylko z mechanizmow biblioteki pthreads. Mozna korzystac z plikow naglowkowych:
-
-```C
-#include <pthread.h>
-#include <semaphore.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-```
-Powyzsza lista moze ulec rozszerzeniu, jesli okaze sie to konieczne. Mozna zalozyc,
-ze kod bedzie kompilowany i testowany na serwerze students.
-
-Jako rozwiazanie nalezy wyslac na moodla plik ab123456.tar.gz, gdzie ab123456 to login na students.
-W archiwum powinien znalezc sie jeden katalog o nazwie ab123456 (login na students) z wszystkimi plikami rozwiazania.
-Kod programow przykladowych nalezy umiescic w plikach macierz.c i silnia.c. Nie powinna byc konieczna modyfikacja
-plikow CMakeLists.txt. Ciag polecen:
+Ciag polecen:
 
 ```shell script
 tar -xf ab123456.tar.gz
