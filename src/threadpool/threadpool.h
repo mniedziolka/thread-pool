@@ -15,7 +15,7 @@
 #include <stddef.h>
 
 /**
- * Runnable
+ * Runnable function
  */
 typedef struct runnable {
   void (*function)(void *, size_t); ///< runnable function;

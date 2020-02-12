@@ -1,3 +1,11 @@
+/** @file
+ * Future implementation.
+ *
+ * @author Michał Niedziółka <michal.niedziolka@students.mimuw.edu.pl>
+ * @copyright Michał Niedziółka
+ * @date 11.02.2020
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "future.h"

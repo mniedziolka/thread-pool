@@ -3,7 +3,7 @@
  *
  * @author Michał Niedziółka <michal.niedziolka@students.mimuw.edu.pl>
  * @copyright Michał Niedziółka
- * @date 29.04.2019
+ * @date 12.02.2020
  */
 
 #include "threadpool.h"
