@@ -82,8 +82,8 @@ static void free_queue(queue_t* queue) {
  * Signal handler
  */
 struct {
-    struct sigaction action; ///<                 new action for sigaction;
-    struct sigaction old_action; ///<             old action for sigaction;
+    struct sigaction action; ///<                            new sigaction;
+    struct sigaction old_action; ///<                        old sigaction;
     thread_pool_t** known_pools; ///< array of pointers to all known pools;
     size_t pools_size; ///<                  size of the known_pools array;
     unsigned last; ///<                        number of initialized pools;
