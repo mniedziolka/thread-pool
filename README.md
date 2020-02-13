@@ -1,98 +1,61 @@
-# Asynchroniczne C
+# Thread-pool
 
-## Szczegolowy opis puli watkow
-Pule watkow nalezy zaimplementowac jako realizacje interfejsu przedstawionego w pliku "threadpool.h". Zamieszczone tam sa m.in. nastepujace deklaracje:
+This library contains the thread-pool and future
+mechanism (known from C++ std::future) implemented in C.
 
+## Details of thread-pool
 ```C
-typedef struct runnable {
-  void (*function)(void *, size_t);
-  void *arg;
-  size_t argsz;
-} runnable_t;
-
-typedef struct thread_pool {
-
-} thread_pool_t;
-
 int thread_pool_init(thread_pool_t *pool, size_t pool_size);
 
 void thread_pool_destroy(thread_pool_t *pool);
 
 int defer(thread_pool_t *pool, runnable_t runnable);
 ```
-Wywolanie thread_pool_init inicjuje argument wskazywany przez pool jako nowa pule, w ktorej bedzie funkcjonowac
-pool_size watkow obslugujacych zgloszone do wykonania zadania. Za gospodarke pamiecia wskazywana przez pool odpowiada
-uzytkownik biblioteki. Poprawnosc dzialania biblioteki jest gwarantowana tylko, jesli kazda pula stworzona przez
-thread_pool_init jest niszczona przez wywolanie thread_pool_destroy z argumentem reprezentujacym te pule.
+The thread_pool_init call initiates the argument pointed to by pool as the new pool in which it will have
+pool_size of serving threads to complete the task. Library correctness is only guaranteed if each pool created by
+thread_pool_init is destroyed by calling thread_pool_destroy with an argument representing these pools.
 
-Wywolanie defer(pool, runnable) zleca puli watkow pool wykonanie zadania opisanego przez argument runnable, argumenty
-function sa przekazywane przez wskaznik args, w polu argsz znajduje sie dlugosc dostepnego do pisania i czytania buforu
-znajdujacego sie pod tym wskaznikiem. Za zarzadzanie pamiecia wskazywana przez args odpowiada klient biblioteki.
 
-Funkcja function powinna zostac obliczona przez watek z puli pool; wywolanie defer moze zablokowac wywolujacy je watek,
-ale jedynie na potrzeby rejestracji zlecenia: powrot z defer jest niezalezny od powrotu z wykonania function przez pule.
+A call to defer(pool, runnable) instructs the pool to execute the task described by the argument runnable.
+Function arguments are passed by the args pointer. In the args field there is the length of the buffer available
+for writing and reading located under this pointer.
 
-Zadania zlecone do wykonania przez defer powinny moc wykonywac sie wspolbieznie i na tyle niezaleznie od siebie, na ile
-to mozliwe. Mozna ograniczyc liczbe wspolbieznie wykonywanych zadan do rozmiaru puli. Pula w czasie swojego dzialania nie
-powinna powolywac wiecej watkow niz okreslono parametrem pool_size. Utworzone watki sa utrzymywane az do wywolania
-thread_pool_destroy.
+The tasks commissioned by defer are concurrent and independent of each other as far as
+it's possible. Pool size is the limit of concurrent tasks. The pot during its operation no
+should have more threads than specified by the pool_size parameter. Created threads are kept alive
+until thread_pool_destroy.
 
-Zastanow sie nad tym, jak zrealizowac powyzsza biblioteke tak, aby wykonywala sie mozliwie sprawnie na wspolczesnych
-komputerach. Postaraj sie zrealizowac taka implementacje.
-
-## Szczegolowy opis mechanizmu obliczen future
-Przy pomocy puli watkow i operacji defer nalezy zaimplenentowac asynchroniczne obliczenia future jako realizacje interfejsu przedstawionego w pliku "future.h". Zamieszczone sa tam m.in. nastepujace deklaracje:
-
+## Details of the future mechanism
 ```C
-typedef struct callable {
-  void *(*function)(void *, size_t, size_t *);
-  void *arg;
-  size_t argsz;
-} callable_t;
+int async(thread_pool_t* pool, future_t *future, callable_t callable);
 
-typedef struct future {
-} future_t;
+int map(thread_pool_t* pool, future_t* future, future_t* from,
+        void* (*function)(void*, size_t, size_t*));
 
-int async(thread_pool_t *pool, future_t *future, callable_t callable);
-
-int map(thread_pool_t *pool, future_t *future, future_t *from,
-        void *(*function)(void *, size_t, size_t *));
-
-void *await(future_t *future);
+void* await(future_t *future);
 ```
-Wywolanie int err = async(pool, future_value, callable) inicjuje pamiec wskazywana przez future_value.
-Za zarzadanie ta pamiecia odpowiada uzytkownik biblioteki. Na puli pool zlecane jest wykonanie function z argumentu
-callable. Funkcja function zwraca wskaznik do wyniku. Uzytkownik biblioteki powinien zadbac, zeby poprawnie ustawila tez
-rozmiar wyniku wykorzystujac do tego celu trzeci argument typu size_t*.
+Running async initializes memory for future, assigns callable to calculate the value in the pool
+and returns it to future mechanism.
 
-Wolajacy moze teraz:
+User can now:
 
-* Zaczekac na zakonczenie wykonania funkcji function przez wywolanie:
+* Wait for value to be calculated:
 ```C
-void *result = await(future_value);
+void* result = await(future_value);
 ```
-Za gospodarke pamiecia wskazywana przez wskaznik result odpowiada uzytkownik biblioteki (pamiec ta moze zostac przekazana
-do funkcji function za pomoca jej argumentow lub w tej funkcji zaalokowana).
 
-* Zlecic jakiejs puli, niekoniecznie tej, ktora zainicjowala future_value, wywolanie innej funkcji na wyniku:
+* Use some pool to calculate next future using previous one.
 ```C
 err = map(pool2, mapped_value, future_value, function2);
 ```
 
-Programy, w ktorych aktywnie dziala jakas pula watkow, powinny miec automatycznie ustawiona obsluge sygnalow.
-Ta obsluga powinna zapewniac, ze program po otrzymaniu sygnalu (SIGINT) zablokuje mozliwosc dodawania nowych zadan do
-dzialajacych pul, dokonczy wszystkie obliczenia zlecone dotad dzialajacym pulom, a nastepnie zniszczy dzialajace pule.
-
-Dla ulatwienia implementacji mozna zalozyc, ze zaimplementowana biblioteka bedzie testowana w taki sposob, iz watki
-nie beda ginely w testach.
-
-## Opis programu macierz
-Program macierz ma ze standardowego wejscia wczytywac dwie liczby k oraz n, kazda w osobnym wierszu. Liczby te oznaczaja
-odpowiednio liczbe wierszy oraz kolumn macierzy. Nastepnie program ma wczytac k*n linijek z danymi, z ktorych kazda
-zawiera dwie, oddzielone spacja liczby: v, t. Liczba v umieszczona w linijce i (numeracje linijek zaczynamy od 0)
-okresla wartosc macierzy z wiersza floor(i/n) (numeracje kolumn i wierszy zaczynamy od 0) oraz kolumny i mod n.
-Liczba t to liczba milisekund, jakie sa potrzebne do obliczenia wartosci v. Oto przykladowe poprawne dane wejsciowe:
-
+## Details of matrix.c
+This is the program that uses the thread-pool to calculate the row-sums in matrix.
+The first two lines contain two numbers k and n (number of rows and columns).
+Then the program should read k*n lines with data. Every line contains two numbers v and t.
+Number v in line i (number of row is defined by calculating floor(i/n)) specify the value.
+Number t specify the time (in milliseconds) needed for calculating the v value.
+Here is the example of correct input data:
 ```
 2
 3
@@ -104,54 +67,47 @@ Liczba t to liczba milisekund, jakie sa potrzebne do obliczenia wartosci v. Oto 
 7 2
 ```
 
-Takie dane wejsciowe tworza macierz od dwoch wierszach i trzech kolumnach:
+Input date above represents matrix below.
 ```
 |  1  1 12 |
 | 23  3  7 |
 ```
 
-Program ma za zadanie wczytac tak sformatowane wejscie (mozna zakladac, ze podawane beda tylko poprawne dane),
-a nastepnie za pomoca puli watkow zawierajacej 4 watki policzyc sumy wierszy, przy czym pojedyncze zadanie obliczeniowe
-powinno podawac w wyniku wartosc pojedynczej komorki macierzy, odczekawszy liczbe milisekund, ktore zostaly wczytane
-jako potrzebne do obliczenia tej wartosci (np. zadanie obliczeniowe wyliczenia wartosci 3 z macierzy powyzej powinno
-odczekiwac 11 milisekund). Po obliczeniu nalezy wypisac sumy kolejnych wierszy na standardowe wyjscie, po jednej sumie
-w wierszu. Dla przykladowej macierzy powyzej umieszczonej w pliku data1.dat wywolanie:
+Running the program:
 
 ```shell script
 $ cat data1.dat | ./macierz
 ```
-powinno spowodowac pojawienie sie na wyjsciu
+should have the same result as stated below
 ```
 14
 33
 ```
 
-## Opis programu silnia
-Program silnia powinien wczytywac ze standardowego wejscia pojedyncza liczbe n, a nastepnie obliczac za pomoca puli 3
-watkow liczbe n!. Po obliczeniu tej liczby wynik powinien zostac wypisany na standardowe wyjscie. Program powinien
-wyliczac silnie, wykorzystujac funkcje map i przekazujac jej w future_value czesciowe iloczyny. Dla przykladu wywolanie:
+## Details of factorial.c
+This is the program that will calculate the n! value using three threads and future mechanism:
+Running:
 ```shell script
 $ echo 5 | ./silnia
 ```
-powinno spowodowac pojawienie sie na wyjsciu
+should result with
 ```
 120
 ```
-Ciag polecen:
 
+## Compiling
 ```shell script
-tar -xf ab123456.tar.gz
 mkdir build && cd build
-cmake ../ab123456
+cmake ..
 make
 ```
 
-Powinien skompilowac biblioteke do pliku build/libasyncc.a, kompilator nie powinien wypisywac zadnych ostrzezen.
-Nastepnie mozna przetestowac swoje rozwiazanie:
+Should compile the library to build/libasyncc.
+
+## Running tests
+You can run tests by
 
 ```shell script
 make test
 ```
-
-W czasie oceniania zawartosc katalogu test zostanie podmieniona.
 

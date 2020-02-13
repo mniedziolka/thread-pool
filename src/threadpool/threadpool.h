@@ -54,7 +54,8 @@ typedef struct thread_pool {
 } thread_pool_t;
 
 /** @brief Initialize the thread-pool.
- * Creates a thread_pool_t object at argument pool.
+ * Create a thread_pool_t object at argument pool
+ * with number of thread passed as pool_size argument.
  * @param[in,out] pool  – pointer to the thread-pool;
  * @param[in] pool_size –    size of the thread-pool;
  * @return @p 0, if init was finished correctly.
@@ -63,7 +64,7 @@ typedef struct thread_pool {
 int thread_pool_init(thread_pool_t *pool, size_t pool_size);
 
 /** @brief Destroy the thread-pool.
- * Finishes all of the tasks, stops and removes pool.
+ * Finish all of the tasks and remove the pool.
  * @param[in,out] pool –    pointer to the thread-pool;
  */
 void thread_pool_destroy(thread_pool_t *pool);
