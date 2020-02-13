@@ -2,6 +2,7 @@
 
 This library contains the thread-pool and future
 mechanism (known from C++ std::future) implemented in C.
+You can find the documentation [here](https://niedziol.github.io/thread-pool/index.html).
 
 ## Details of thread-pool
 ```C
