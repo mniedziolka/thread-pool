@@ -57,7 +57,7 @@ int async(thread_pool_t* pool, future_t* future, callable_t callable);
 int map(thread_pool_t* pool, future_t* future, future_t* from,
         void* (*function)(void*, size_t, size_t*));
 
-/** @brief Wait for future.
+/** @brief Wait for future to finish.
  * Sleep on semaphore until the future is calculated.
  * @param[in,out] future  – pointer to a variable that will store the callable result;
  */

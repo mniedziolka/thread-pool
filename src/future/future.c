@@ -12,17 +12,29 @@
 
 typedef void *(*function_t)(void *);
 
+/**
+ * Pair of future variables.
+ */
 typedef struct pair_future {
-    future_t* first;
-    future_t* second;
+    future_t* first; ///<   pointer to first future;
+    future_t* second; ///< pointer to second future;
 } pair_future_t;
 
+/** @brief Wrap callable function in runnable.
+ * Write the result of the function to variable.
+ * Unlock the semaphore to let user know that the task is finished.
+ * @param[in,out] arg –  array of arguments;
+ */
 static void fun(void* arg, size_t size __attribute__((unused))) {
     future_t* f = arg;
     f->result = f->callable.function(f->callable.arg, f->callable.argsz, &f->result_size);
     sem_post(&f->finished);
 }
 
+/** @brief Helper function for map.
+ * Wait until from is finished, then run the function and write the result to future.
+ * @param[in,out] arg – array of arguments;
+ */
 static void fun_with_wait(void* arg, size_t size __attribute__((unused))) {
     pair_future_t* pair = arg;
     future_t* from = pair->first;

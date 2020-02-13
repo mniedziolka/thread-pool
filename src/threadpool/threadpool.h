@@ -27,8 +27,8 @@ typedef struct runnable {
  * Single queue node
  */
 typedef struct node {
-    runnable_t runnable;
-    struct node* next;
+    runnable_t runnable; ///<      runnable function;
+    struct node* next; ///< pointer to the next node;
 } node_t;
 
 /**
